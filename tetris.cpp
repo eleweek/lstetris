@@ -3,63 +3,116 @@
 #include <ctime>
 #include <vector>
 
-
-// TODO: refactor into proper classes
-std::vector< std::vector<int> > fig(4, std::vector<int>(4, 0));
-int figX = 0;
-int figY = 0;
-
-std::vector< std::vector<int> > field(20, std::vector<int>(10, 0));
-
-void init()
+class Game
 {
-    fig[0][0] = 1;
-    fig[0][1] = 1;
-    fig[0][2] = 1;
-    fig[1][1] = 1;
+public:
+    Game()
+      : FIELD_WIDTH(10)
+      , FIELD_HEIGHT(20)
+      , field(FIELD_HEIGHT, std::vector<int>(FIELD_WIDTH, 0))
+      , fig(4, std::vector<int>(4, 0))
+      , figX(0)
+      , figY(FIELD_HEIGHT)
+    {
+        // TODO ugly, handle it i a better way
+        fig[0][0] = 1;
+        fig[0][1] = 1;
+        fig[0][2] = 1;
+        fig[1][1] = 1;
 
-    field[0][1] = 1;
-    field[0][2] = 1;
-    field[1][1] = 1;
-    field[1][2] = 1;
+        field[0][1] = 1;
+        field[0][2] = 1;
+        field[1][1] = 1;
+        field[1][2] = 1;
 
-    field[5][5] = 1;
-    field[5][5] = 1;
-    field[5][6] = 1;
-    field[5][6] = 1;
-}
+        field[5][5] = 1;
+        field[5][5] = 1;
+        field[5][6] = 1;
+        field[5][6] = 1;
+    }
 
-void drawMatrix(sf::RenderWindow& window, std::vector< std::vector<int> > matrix, int offsetX = 0, int offsetY = 0)
-{
-    const int squareSize = 20;
-    const int outlineThickness = 2;
-    const int matrixPositionX = 50;
-    const int matrixPositionY = 100;
-    int matrixHeight = squareSize * matrix.size();
-    int matrixWidth = squareSize * matrix[0].size();
-    const sf::Color color(0, 128, 200);
-    for (int i = 0; i < matrix.size(); ++i) {
-        for (int j = 0; j < matrix[i].size(); ++j) {
-            if (matrix[i][j]) {
-                sf::RectangleShape shape(sf::Vector2f(squareSize - 2 * outlineThickness, squareSize - 2 * outlineThickness));
-                shape.setPosition(matrixPositionX + (j + offsetX) * squareSize, matrixPositionY + matrixHeight - (i + offsetY + 1) * squareSize);
-                shape.setFillColor(color);
-                shape.setOutlineThickness(outlineThickness);
-                window.draw(shape);
+    void DrawField(sf::RenderWindow& window)
+    {
+        int fieldHeight = squareSize * field.size();
+        int fieldWidth = squareSize * field[0].size();
+        DrawMatrix(window, field);
+        sf::RectangleShape border(sf::Vector2f(fieldWidth, fieldHeight));
+        border.setPosition(fieldPositionX, fieldPositionY);
+        border.setOutlineThickness(outlineThickness);
+        border.setFillColor(sf::Color::Transparent);
+        window.draw(border);
+
+    }
+
+    void DrawMatrix(sf::RenderWindow& window, std::vector< std::vector<int> > matrix, int offsetX = 0, int offsetY = 0)
+    {
+        int matrixHeight = squareSize * field.size();
+        int matrixWidth = squareSize * field[0].size();
+        const sf::Color color(0, 128, 200);
+        for (int i = 0; i < matrix.size(); ++i) {
+            for (int j = 0; j < matrix[i].size(); ++j) {
+                if (matrix[i][j]) {
+                    sf::RectangleShape shape(sf::Vector2f(squareSize - 2 * outlineThickness, squareSize - 2 * outlineThickness));
+                    shape.setPosition(fieldPositionX + (j + offsetX) * squareSize, fieldPositionY + matrixHeight - (i + offsetY + 1) * squareSize);
+                    shape.setFillColor(color);
+                    shape.setOutlineThickness(outlineThickness);
+                    window.draw(shape);
+                }
             }
         }
     }
-    sf::RectangleShape border(sf::Vector2f(matrixWidth, matrixHeight));
-    border.setPosition(matrixPositionX, matrixPositionY);
-    border.setOutlineThickness(outlineThickness);
-    border.setFillColor(sf::Color::Transparent);
-    window.draw(border);
 
+    void Draw(sf::RenderWindow& window)
+    {
+        DrawField(window);
+        DrawMatrix(window, fig, figX, figY);
+    }
+
+    void MoveFigureRight()
+    {
+        if (figX < FIELD_WIDTH - 1)
+            figX++;
+    }
+
+    void MoveFigureLeft()
+    {
+        if (figX > 0)
+            figX--;
+    }
+
+    void MoveFigureDown()
+    {
+        if (figY > 0)
+            figY--;
+    }
+private:
+    const int FIELD_WIDTH;
+    const int FIELD_HEIGHT;
+    std::vector< std::vector<int> > field;
+    std::vector< std::vector<int> > fig;
+    int figX;
+    int figY;
+    enum {
+        fieldPositionX = 50,
+        fieldPositionY = 100,
+    };
+    enum {
+        squareSize = 20,
+        outlineThickness = 2,
+        matrixPositionX = 50,
+        matrixPositionY = 100,
+    };
+};
+
+void init()
+{
 }
+
 
 int main()
 {
-    init();
+    Game game;
+
     const int windowWidth = 800;
     const int windowHeight = 600;
 
@@ -79,20 +132,16 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-        drawMatrix(window, field);
-        drawMatrix(window, fig, figX, figY);
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-            figX--;
+            game.MoveFigureLeft();
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-            figX++;
+            game.MoveFigureRight();
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-            figY--;
+            game.MoveFigureDown();
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-            figY++;
-        }
+        game.Draw(window);
         window.display();
     }
 }
