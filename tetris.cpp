@@ -3,32 +3,98 @@
 #include <ctime>
 #include <vector>
 
+
 class Game
 {
 public:
+    class Square
+    {
+    public:
+        Square(bool isOccupied=false, sf::Color color=sf::Color(0, 128, 200))
+          : IsOccupied(isOccupied)
+          , Color(color)
+        {}
+
+        void Draw(sf::RenderWindow& window, int x, int y)
+        {
+            if (IsOccupied) {
+                int fieldHeight = squareSize * FIELD_HEIGHT;
+                int fieldWidth = squareSize * FIELD_WIDTH;
+                sf::RectangleShape shape(sf::Vector2f(squareSize - 2 * outlineThickness, squareSize - 2 * outlineThickness));
+                shape.setPosition(fieldPositionX + x * squareSize, fieldPositionY + fieldHeight - (y + 1) * squareSize);
+                shape.setFillColor(Color);
+                shape.setOutlineThickness(outlineThickness);
+                window.draw(shape);
+            }
+        }
+
+        bool IsOccupied;
+        sf::Color Color;
+    };
+
+    class Figure
+    {
+    public:
+        Figure()
+          : CurrentStateIndex(0)
+        {
+            int states[2][4][4] = {
+                {{0, 0, 1, 0},
+                {0, 1, 1, 0},
+                {0, 1, 0, 0},
+                {0, 0, 0, 0}},
+
+                {{0, 1, 1, 0},
+                {0, 0, 1, 1},
+                {0, 0, 0, 0},
+                {0, 0, 0, 0}}
+            };
+
+            // TODO: refactor out of this class
+            // TODO: remove constants
+            for (int s = 0; s < 2; ++s) {
+                States.push_back(std::vector< std::vector<Square> >(4, std::vector<Square>(4)));
+                for (int i = 0; i < 4; ++i)
+                    for(int j = 0; j < 4; ++j)
+                        States[s][i][j] = states[s][i][j];
+            }
+        }
+
+        void Rotate()
+        {
+            CurrentStateIndex = (CurrentStateIndex + 1) % States.size();
+        }
+
+        Square GetSquare(int i, int j)
+        {
+            return States[CurrentStateIndex][i][j];
+        }
+
+        std::vector< std::vector<Square> > GetCurrentState()
+        {
+            return States[CurrentStateIndex];
+        }
+    private:
+        std::vector< std::vector< std::vector<Square> > > States;
+        int CurrentStateIndex;
+    };
+
+public:
     Game()
-      : FIELD_WIDTH(10)
-      , FIELD_HEIGHT(20)
-      , field(FIELD_HEIGHT, std::vector<int>(FIELD_WIDTH, 0))
-      , fig(4, std::vector<int>(4, 0))
+      : field(FIELD_HEIGHT, std::vector<Square>(FIELD_WIDTH, Square()))
       , figX(0)
       , figY(FIELD_HEIGHT)
     {
         // TODO ugly, handle it i a better way
-        fig[0][0] = 1;
-        fig[0][1] = 1;
-        fig[0][2] = 1;
-        fig[1][1] = 1;
+        field[0][1] = true;
+        field[0][2] = true;
+        field[1][1] = true;
+        field[1][2] = true;
 
-        field[0][1] = 1;
-        field[0][2] = 1;
-        field[1][1] = 1;
-        field[1][2] = 1;
-
-        field[5][5] = 1;
-        field[5][5] = 1;
-        field[5][6] = 1;
-        field[5][6] = 1;
+        field[5][5] = true;
+        field[5][5] = true;
+        field[5][6] = true;
+        field[5][6] = true;
     }
 
     void DrawField(sf::RenderWindow& window)
@@ -41,23 +107,15 @@ public:
         border.setOutlineThickness(outlineThickness);
         border.setFillColor(sf::Color::Transparent);
         window.draw(border);
-
     }
 
-    void DrawMatrix(sf::RenderWindow& window, std::vector< std::vector<int> > matrix, int offsetX = 0, int offsetY = 0)
+    void DrawMatrix(sf::RenderWindow& window, std::vector< std::vector<Square> > matrix, int offsetX = 0, int offsetY = 0)
     {
         int matrixHeight = squareSize * field.size();
         int matrixWidth = squareSize * field[0].size();
-        const sf::Color color(0, 128, 200);
         for (int i = 0; i < matrix.size(); ++i) {
             for (int j = 0; j < matrix[i].size(); ++j) {
-                if (matrix[i][j]) {
-                    sf::RectangleShape shape(sf::Vector2f(squareSize - 2 * outlineThickness, squareSize - 2 * outlineThickness));
-                    shape.setPosition(fieldPositionX + (j + offsetX) * squareSize, fieldPositionY + matrixHeight - (i + offsetY + 1) * squareSize);
-                    shape.setFillColor(color);
-                    shape.setOutlineThickness(outlineThickness);
-                    window.draw(shape);
-                }
+                matrix[i][j].Draw(window, j + offsetX, i + offsetY);
             }
         }
     }
@@ -65,7 +123,7 @@ public:
     void Draw(sf::RenderWindow& window)
     {
         DrawField(window);
-        DrawMatrix(window, fig, figX, figY);
+        DrawMatrix(window, fig.GetCurrentState(), figX, figY);
     }
 
     void MoveFigureRight()
@@ -85,11 +143,18 @@ public:
         if (figY > 0)
             figY--;
     }
+
+    void RotateFigure()
+    {
+        /* TODO: collision checking */
+        fig.Rotate();
+    }
+
 private:
-    const int FIELD_WIDTH;
-    const int FIELD_HEIGHT;
-    std::vector< std::vector<int> > field;
-    std::vector< std::vector<int> > fig;
+    static const int FIELD_WIDTH = 10;
+    static const int FIELD_HEIGHT = 20;
+    std::vector< std::vector<Square> > field;
+    Figure fig;
     int figX;
     int figY;
     enum {
@@ -129,17 +194,30 @@ int main()
         while (window.pollEvent(event))
         {
             // "close requested" event: we close the window
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-            game.MoveFigureLeft();
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-            game.MoveFigureRight();
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-            game.MoveFigureDown();
+            switch (event.type) {
+                case sf::Event::Closed:
+                    window.close();
+                    break;
+                case sf::Event::KeyPressed:
+                    switch (event.key.code) {
+                        case sf::Keyboard::Left:
+                            game.MoveFigureLeft();
+                            break;
+                        case sf::Keyboard::Right:
+                            game.MoveFigureRight();
+                            break;
+                        case sf::Keyboard::Down:
+                            game.MoveFigureDown();
+                            break;
+                        case sf::Keyboard::Space:
+                            game.RotateFigure();
+                            break;
+                        default:
+                            break;
+                    };
+                default:
+                    break;
+            };
         }
         game.Draw(window);
         window.display();
