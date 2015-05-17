@@ -35,7 +35,7 @@ public:
     class Figure
     {
     public:
-        Figure()
+        Figure(sf::Color color = sf::Color(0, 128, 200))
           : CurrentStateIndex(0)
         {
             int states[2][4][4] = {
@@ -56,13 +56,18 @@ public:
                 States.push_back(std::vector< std::vector<Square> >(4, std::vector<Square>(4)));
                 for (int i = 0; i < 4; ++i)
                     for(int j = 0; j < 4; ++j)
-                        States[s][i][j] = states[s][i][j];
+                        States[s][i][j] = Square(states[s][i][j], color);
             }
         }
 
         void Rotate()
         {
             CurrentStateIndex = (CurrentStateIndex + 1) % States.size();
+        }
+
+        void RotateBack()
+        {
+            CurrentStateIndex = (CurrentStateIndex - 1) % States.size();
         }
 
         Square GetSquare(int i, int j)
@@ -85,6 +90,7 @@ public:
       , figX(0)
       , figY(FIELD_HEIGHT - 4)
     {
+        GenerateNewFigure();
         // TODO ugly, handle it i a better way
         field[0][0] = true;
         field[0][1] = true;
@@ -146,13 +152,38 @@ public:
 
     void ForceFigureDown()
     {
-        MoveFigureDown();
+        if (IsCorrectFigurePosition(figX, figY - 1)) {
+            MoveFigureDown();
+        } else {
+            AddFigureToField();
+            GenerateNewFigure();
+        }
+    }
+
+    void AddFigureToField()
+    {
+        for (int i = 0; i < FIG_SIZE; ++i) {
+            for (int j = 0; j < FIG_SIZE; ++j) {
+                if (fig.GetSquare(i, j).IsOccupied){
+                    field[figX + i][figY + j] = fig.GetSquare(i, j);
+                }
+            }
+        }
+    }
+
+    void GenerateNewFigure()
+    {
+        fig = Figure(sf::Color(random() % 256, random() % 256, random() % 256));
+        // TODO better initial position, hidden rows
+        figX = FIELD_WIDTH / 2;
+        figY = FIELD_HEIGHT - 4;
     }
 
     void RotateFigure()
     {
-        /* TODO: collision checking */
         fig.Rotate();
+        if (!IsCorrectFigurePosition(figX, figY))
+            fig.RotateBack();
     }
 
     bool IsCorrectFigurePosition(int x, int y)
