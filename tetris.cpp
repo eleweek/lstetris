@@ -81,15 +81,15 @@ public:
 
 public:
     Game()
-      : field(FIELD_HEIGHT, std::vector<Square>(FIELD_WIDTH, Square()))
+      : field(FIELD_WIDTH, std::vector<Square>(FIELD_HEIGHT, Square()))
       , figX(0)
-      , figY(FIELD_HEIGHT)
+      , figY(FIELD_HEIGHT - 4)
     {
         // TODO ugly, handle it i a better way
+        field[0][0] = true;
         field[0][1] = true;
-        field[0][2] = true;
+        field[1][0] = true;
         field[1][1] = true;
-        field[1][2] = true;
 
         field[5][5] = true;
         field[5][5] = true;
@@ -99,8 +99,8 @@ public:
 
     void DrawField(sf::RenderWindow& window)
     {
-        int fieldHeight = squareSize * field.size();
-        int fieldWidth = squareSize * field[0].size();
+        int fieldHeight = squareSize * FIELD_HEIGHT;
+        int fieldWidth = squareSize * FIELD_WIDTH;
         DrawMatrix(window, field);
         sf::RectangleShape border(sf::Vector2f(fieldWidth, fieldHeight));
         border.setPosition(fieldPositionX, fieldPositionY);
@@ -115,7 +115,7 @@ public:
         int matrixWidth = squareSize * field[0].size();
         for (int i = 0; i < matrix.size(); ++i) {
             for (int j = 0; j < matrix[i].size(); ++j) {
-                matrix[i][j].Draw(window, j + offsetX, i + offsetY);
+                matrix[i][j].Draw(window, i + offsetX, j + offsetY);
             }
         }
     }
@@ -128,19 +128,19 @@ public:
 
     void MoveFigureRight()
     {
-        if (figX < FIELD_WIDTH - 1)
+        if (IsCorrectFigurePosition(figX + 1, figY))
             figX++;
     }
 
     void MoveFigureLeft()
     {
-        if (figX > 0)
+        if (IsCorrectFigurePosition(figX - 1, figY))
             figX--;
     }
 
     void MoveFigureDown()
     {
-        if (figY > 0)
+        if (IsCorrectFigurePosition(figX, figY - 1))
             figY--;
     }
 
@@ -150,9 +150,23 @@ public:
         fig.Rotate();
     }
 
+    bool IsCorrectFigurePosition(int x, int y)
+    {
+        for (int i = 0; i < FIG_SIZE; ++i) {
+            for (int j = 0; j < FIG_SIZE; ++j) {
+                if (fig.GetSquare(i, j).IsOccupied && ((x + i) >= FIELD_WIDTH || (x + i) < 0 || (y+j) >= FIELD_HEIGHT || (y + j) < 0 || field[x + i][y + j].IsOccupied)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
 private:
     static const int FIELD_WIDTH = 10;
     static const int FIELD_HEIGHT = 20;
+    static const int FIG_SIZE = 4;
     std::vector< std::vector<Square> > field;
     Figure fig;
     int figX;
