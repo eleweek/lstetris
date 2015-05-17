@@ -144,6 +144,11 @@ public:
             figY--;
     }
 
+    void ForceFigureDown()
+    {
+        MoveFigureDown();
+    }
+
     void RotateFigure()
     {
         /* TODO: collision checking */
@@ -200,6 +205,8 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "My window", sf::Style::Default,  settings);
 
+    sf::Clock clock;
+    const int tickSize = 1000;
     while (window.isOpen())
     {
         window.clear();
@@ -232,6 +239,10 @@ int main()
                 default:
                     break;
             };
+        }
+        if (clock.getElapsedTime().asMilliseconds() > tickSize) {
+            game.ForceFigureDown();
+            clock.restart();
         }
         game.Draw(window);
         window.display();
