@@ -35,24 +35,13 @@ public:
     class Figure
     {
     public:
-        Figure(sf::Color color = sf::Color(0, 128, 200))
+        Figure()
+        {}
+
+        Figure(int states[][4][4], int numStates, sf::Color color = sf::Color(0, 128, 200))
           : CurrentStateIndex(0)
         {
-            int states[2][4][4] = {
-                {{0, 0, 1, 0},
-                {0, 1, 1, 0},
-                {0, 1, 0, 0},
-                {0, 0, 0, 0}},
-
-                {{0, 1, 1, 0},
-                {0, 0, 1, 1},
-                {0, 0, 0, 0},
-                {0, 0, 0, 0}}
-            };
-
-            // TODO: refactor out of this class
-            // TODO: remove constants
-            for (int s = 0; s < 2; ++s) {
+            for (int s = 0; s < numStates; ++s) {
                 States.push_back(std::vector< std::vector<Square> >(4, std::vector<Square>(4)));
                 for (int i = 0; i < 4; ++i)
                     for(int j = 0; j < 4; ++j)
@@ -90,17 +79,8 @@ public:
       , figX(0)
       , figY(FIELD_HEIGHT - 4)
     {
+        InitAvailableFigures();
         GenerateNewFigure();
-        // TODO ugly, handle it i a better way
-        field[0][0] = true;
-        field[0][1] = true;
-        field[1][0] = true;
-        field[1][1] = true;
-
-        field[5][5] = true;
-        field[5][5] = true;
-        field[5][6] = true;
-        field[5][6] = true;
     }
 
     void DrawField(sf::RenderWindow& window)
@@ -129,7 +109,7 @@ public:
     void Draw(sf::RenderWindow& window)
     {
         DrawField(window);
-        DrawMatrix(window, fig.GetCurrentState(), figX, figY);
+        DrawMatrix(window, Fig.GetCurrentState(), figX, figY);
     }
 
     void MoveFigureRight()
@@ -164,8 +144,8 @@ public:
     {
         for (int i = 0; i < FIG_SIZE; ++i) {
             for (int j = 0; j < FIG_SIZE; ++j) {
-                if (fig.GetSquare(i, j).IsOccupied){
-                    field[figX + i][figY + j] = fig.GetSquare(i, j);
+                if (Fig.GetSquare(i, j).IsOccupied){
+                    field[figX + i][figY + j] = Fig.GetSquare(i, j);
                 }
             }
         }
@@ -173,7 +153,7 @@ public:
 
     void GenerateNewFigure()
     {
-        fig = Figure(sf::Color(random() % 256, random() % 256, random() % 256));
+        Fig = AvailableFigures[random() % AvailableFigures.size()];
         // TODO better initial position, hidden rows
         figX = FIELD_WIDTH / 2;
         figY = FIELD_HEIGHT - 4;
@@ -181,16 +161,131 @@ public:
 
     void RotateFigure()
     {
-        fig.Rotate();
+        Fig.Rotate();
         if (!IsCorrectFigurePosition(figX, figY))
-            fig.RotateBack();
+            Fig.RotateBack();
+    }
+
+    void InitAvailableFigures()
+    {
+        int z[2][FIG_SIZE][FIG_SIZE] = {
+            {{0, 0, 1, 0},
+             {0, 1, 1, 0},
+             {0, 1, 0, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 1, 1, 0},
+             {0, 0, 1, 1},
+             {0, 0, 0, 0},
+             {0, 0, 0, 0}}
+        };
+        AvailableFigures.push_back(Figure(z, 2, sf::Color::Green));
+        int s[2][FIG_SIZE][FIG_SIZE] = {
+            {{0, 1, 0, 0},
+             {0, 1, 1, 0},
+             {0, 0, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 1, 1},
+             {0, 1, 1, 0},
+             {0, 0, 0, 0},
+             {0, 0, 0, 0}}
+        };
+        AvailableFigures.push_back(Figure(s, 2, sf::Color::Blue));
+        int o[2][FIG_SIZE][FIG_SIZE] = {
+            {{0, 1, 1, 0},
+             {0, 1, 1, 0},
+             {0, 0, 0, 0},
+             {0, 0, 0, 0}},
+        };
+        AvailableFigures.push_back(Figure(o, 1, sf::Color::Red));
+        int i[2][FIG_SIZE][FIG_SIZE] = {
+            {{0, 1, 0, 0},
+             {0, 1, 0, 0},
+             {0, 1, 0, 0},
+             {0, 1, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {1, 1, 1, 1},
+             {0, 0, 0, 0},
+             {0, 0, 0, 0}}
+        };
+        AvailableFigures.push_back(Figure(i, 2, sf::Color::Yellow));
+        int l[4][FIG_SIZE][FIG_SIZE] = {
+            {{0, 1, 0, 0},
+             {0, 1, 0, 0},
+             {0, 1, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {0, 1, 1, 1},
+             {0, 1, 0, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 1, 1, 0},
+             {0, 0, 1, 0},
+             {0, 0, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {0, 0, 1, 0},
+             {1, 1, 1, 0},
+             {0, 0, 0, 0}},
+        };
+        AvailableFigures.push_back(Figure(l, 4, sf::Color::Cyan));
+
+        int j[4][FIG_SIZE][FIG_SIZE] = {
+            {{0, 0, 1, 0},
+             {0, 0, 1, 0},
+             {0, 1, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {0, 1, 0, 0},
+             {0, 1, 1, 1},
+             {0, 0, 0, 0}},
+
+            {{0, 1, 1, 0},
+             {0, 1, 0, 0},
+             {0, 1, 0, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {0, 1, 1, 1},
+             {0, 0, 0, 1},
+             {0, 0, 0, 0}},
+        };
+        AvailableFigures.push_back(Figure(j, 4, sf::Color(25, 75, 150)));
+
+        int t[4][FIG_SIZE][FIG_SIZE] = {
+            {{0, 0, 1, 0},
+             {0, 1, 1, 0},
+             {0, 0, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{0, 0, 0, 0},
+             {0, 1, 0, 0},
+             {1, 1, 1, 0},
+             {0, 0, 0, 0}},
+
+            {{1, 0, 0, 0},
+             {1, 1, 0, 0},
+             {1, 0, 0, 0},
+             {0, 0, 0, 0}},
+
+            {{1, 1, 1, 0},
+             {0, 1, 0, 0},
+             {0, 0, 0, 0},
+             {0, 0, 0, 0}},
+        };
+        AvailableFigures.push_back(Figure(t, 4, sf::Color::Magenta));
     }
 
     bool IsCorrectFigurePosition(int x, int y)
     {
         for (int i = 0; i < FIG_SIZE; ++i) {
             for (int j = 0; j < FIG_SIZE; ++j) {
-                if (fig.GetSquare(i, j).IsOccupied && ((x + i) >= FIELD_WIDTH || (x + i) < 0 || (y+j) >= FIELD_HEIGHT || (y + j) < 0 || field[x + i][y + j].IsOccupied)) {
+                if (Fig.GetSquare(i, j).IsOccupied && ((x + i) >= FIELD_WIDTH || (x + i) < 0 || (y+j) >= FIELD_HEIGHT || (y + j) < 0 || field[x + i][y + j].IsOccupied)) {
                     return false;
                 }
             }
@@ -204,7 +299,8 @@ private:
     static const int FIELD_HEIGHT = 20;
     static const int FIG_SIZE = 4;
     std::vector< std::vector<Square> > field;
-    Figure fig;
+    Figure Fig;
+    std::vector<Figure> AvailableFigures;
     int figX;
     int figY;
     enum {
@@ -237,7 +333,7 @@ int main()
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "My window", sf::Style::Default,  settings);
 
     sf::Clock clock;
-    const int tickSize = 1000;
+    const int tickSize = 250;
     while (window.isOpen())
     {
         window.clear();
