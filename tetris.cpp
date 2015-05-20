@@ -59,9 +59,9 @@ public:
             CurrentStateIndex = (CurrentStateIndex - 1) % States.size();
         }
 
-        Square GetSquare(int i, int j)
+        Square GetSquare(int row, int col)
         {
-            return States[CurrentStateIndex][i][j];
+            return States[CurrentStateIndex][row][col];
         }
 
         std::vector< std::vector<Square> > GetCurrentState()
@@ -75,9 +75,7 @@ public:
 
 public:
     Game()
-      : field(FIELD_WIDTH, std::vector<Square>(FIELD_HEIGHT, Square()))
-      , figX(0)
-      , figY(FIELD_HEIGHT - 4)
+      : field(FIELD_HEIGHT, std::vector<Square>(FIELD_WIDTH, Square()))
     {
         InitAvailableFigures();
         GenerateNewFigure();
@@ -95,13 +93,13 @@ public:
         window.draw(border);
     }
 
-    void DrawMatrix(sf::RenderWindow& window, std::vector< std::vector<Square> > matrix, int offsetX = 0, int offsetY = 0)
+    void DrawMatrix(sf::RenderWindow& window, std::vector< std::vector<Square> > matrix, int offsetCol = 0, int offsetRow = 0)
     {
-        int matrixHeight = squareSize * field.size();
-        int matrixWidth = squareSize * field[0].size();
+        int matrixHeight = squareSize * field[0].size();
+        int matrixWidth = squareSize * field.size();
         for (int i = 0; i < matrix.size(); ++i) {
             for (int j = 0; j < matrix[i].size(); ++j) {
-                matrix[i][j].Draw(window, i + offsetX, j + offsetY);
+                matrix[i][j].Draw(window, j + offsetCol, i + offsetRow);
             }
         }
     }
@@ -109,43 +107,44 @@ public:
     void Draw(sf::RenderWindow& window)
     {
         DrawField(window);
-        DrawMatrix(window, Fig.GetCurrentState(), figX, figY);
+        DrawMatrix(window, Fig.GetCurrentState(), figCol, figRow);
     }
 
     void MoveFigureRight()
     {
-        if (IsCorrectFigurePosition(figX + 1, figY))
-            figX++;
+        if (IsCorrectFigurePosition(figCol + 1, figRow))
+            figCol++;
     }
 
     void MoveFigureLeft()
     {
-        if (IsCorrectFigurePosition(figX - 1, figY))
-            figX--;
+        if (IsCorrectFigurePosition(figCol - 1, figRow))
+            figCol--;
     }
 
     void MoveFigureDown()
     {
-        if (IsCorrectFigurePosition(figX, figY - 1))
-            figY--;
+        if (IsCorrectFigurePosition(figCol, figRow - 1))
+            figRow--;
     }
 
     void ForceFigureDown()
     {
-        if (IsCorrectFigurePosition(figX, figY - 1)) {
+        if (IsCorrectFigurePosition(figCol, figRow - 1)) {
             MoveFigureDown();
         } else {
             AddFigureToField();
+            ClearLines();
             GenerateNewFigure();
         }
     }
 
     void AddFigureToField()
     {
-        for (int i = 0; i < FIG_SIZE; ++i) {
-            for (int j = 0; j < FIG_SIZE; ++j) {
-                if (Fig.GetSquare(i, j).IsOccupied){
-                    field[figX + i][figY + j] = Fig.GetSquare(i, j);
+        for (int r = 0; r < FIG_SIZE; ++r) {
+            for (int c = 0; c < FIG_SIZE; ++c) {
+                if (Fig.GetSquare(r, c).IsOccupied){
+                    field[figRow + r][figCol + c] = Fig.GetSquare(r, c);
                 }
             }
         }
@@ -155,14 +154,14 @@ public:
     {
         Fig = AvailableFigures[random() % AvailableFigures.size()];
         // TODO better initial position, hidden rows
-        figX = FIELD_WIDTH / 2;
-        figY = FIELD_HEIGHT - 4;
+        figCol = FIELD_WIDTH / 2;
+        figRow = FIELD_HEIGHT - 4;
     }
 
     void RotateFigure()
     {
         Fig.Rotate();
-        if (!IsCorrectFigurePosition(figX, figY))
+        if (!IsCorrectFigurePosition(figCol, figRow))
             Fig.RotateBack();
     }
 
@@ -281,11 +280,29 @@ public:
         AvailableFigures.push_back(Figure(t, 4, sf::Color::Magenta));
     }
 
-    bool IsCorrectFigurePosition(int x, int y)
+    void ClearLines()
     {
-        for (int i = 0; i < FIG_SIZE; ++i) {
-            for (int j = 0; j < FIG_SIZE; ++j) {
-                if (Fig.GetSquare(i, j).IsOccupied && ((x + i) >= FIELD_WIDTH || (x + i) < 0 || (y+j) >= FIELD_HEIGHT || (y + j) < 0 || field[x + i][y + j].IsOccupied)) {
+        std::vector< std::vector<Square> >::iterator it = field.begin();
+        while (it != field.end()) {
+            bool isLineFull = true;
+            for (int j = 0; j < it->size(); j++) {
+                isLineFull &= it->at(j).IsOccupied;
+            }
+            if (isLineFull) {
+                field.erase(it);
+                field.push_back(std::vector<Square>(FIELD_WIDTH));
+                it = field.begin();
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    bool IsCorrectFigurePosition(int col, int row)
+    {
+        for (int r = 0; r < FIG_SIZE; ++r) {
+            for (int c = 0; c < FIG_SIZE; ++c) {
+                if (Fig.GetSquare(r, c).IsOccupied && ((col + c) >= FIELD_WIDTH || (col + c) < 0 || (row + r) >= FIELD_HEIGHT || (row + r) < 0 || field[row + r][col + c].IsOccupied)) {
                     return false;
                 }
             }
@@ -301,8 +318,8 @@ private:
     std::vector< std::vector<Square> > field;
     Figure Fig;
     std::vector<Figure> AvailableFigures;
-    int figX;
-    int figY;
+    int figRow;
+    int figCol;
     enum {
         fieldPositionX = 50,
         fieldPositionY = 100,
